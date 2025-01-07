@@ -169,3 +169,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+data.txt
+knowledge.json
+jieba_demo.py

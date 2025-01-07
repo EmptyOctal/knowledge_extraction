@@ -1,32 +1,39 @@
 import re
 
-def rule_is_relation(words):
+def to_sentence(words):
     """
-    规则1：提取 "A 是 B" 的句式
-    :param words: 分词与词性标注结果 [(word, pos)]
-    :return: 知识三元组列表 [(主语, 谓语, 宾语)]
+    将分词与词性标注结果转换为字符串模式。
+    示例：
+    输入: [('张三', 'nr'), ('是', 'v'), ('学生', 'n')]
+    输出: '张三/nr 是/v 学生/n'
     """
-    pattern = re.compile(r'(\w+)/n 是/v (\w+)/n')  # 匹配 “名词 是 名词”
-    sentence = " ".join([f"{w}/{p}" for w, p in words])  # 转换成标注格式
-    matches = pattern.findall(sentence)
-    return [(match[0], "是", match[1]) for match in matches]
+    return ' '.join(f"{word}/{tag}" for word, tag in words)
 
 
-def rule_own_relation(words):
+# 定义名词词性集合
+NOUN_TAGS = {'n', 'nr', 'ns', 'nt', 'nz', 'ng'}
+
+def rule_verb_object_relation(sentence):
     """
-    规则2：提取 "X 拥有 Y" 的句式
-    :param words: 分词与词性标注结果 [(word, pos)]
-    :return: 知识三元组列表 [(主语, 谓语, 宾语)]
+    规则1：提取一般动宾结构 "A 动作 B"
     """
-    pattern = re.compile(r'(\w+)/n 拥有/v (\w+)/n')  # 匹配 “名词 拥有 名词”
-    sentence = " ".join([f"{w}/{p}" for w, p in words])
-    matches = pattern.findall(sentence)
-    return [(match[0], "拥有", match[1]) for match in matches]
+    triples = []
+    # (\S+)/(nt|ns|n|ng|nr|nz) (\S+)/v (\S+)/(nt|ns|n|ng|nr|nz)
+    pattern = r'(\S+)/({}) (\S+)/v (\S+)/({})'.format('|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS))
+    matches = re.finditer(pattern, sentence)
+    for match in matches:
+        triples.append((match.group(1), match.group(3), match.group(4)))
+    return triples
 
 
 def apply_rules(words):
-    """应用所有规则，返回所有三元组"""
+    """
+    应用所有规则
+    :param words: 分词与词性标注结果
+    :return: 知识三元组列表
+    """
+    sentence = to_sentence(words)
+    # print('sentence:',sentence)
     results = []
-    results.extend(rule_is_relation(words))
-    results.extend(rule_own_relation(words))
+    results.extend(rule_verb_object_relation(sentence))
     return results
