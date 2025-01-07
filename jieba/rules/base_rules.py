@@ -17,12 +17,15 @@ def rule_verb_object_relation(sentence):
     """
     规则1：提取一般动宾结构 "A 动作 B"
     """
-    triples = []
+    triples = set()
     # (\S+)/(nt|ns|n|ng|nr|nz) (\S+)/v (\S+)/(nt|ns|n|ng|nr|nz)
     pattern = r'(\S+)/({}) (\S+)/v (\S+)/({})'.format('|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS))
     matches = re.finditer(pattern, sentence)
     for match in matches:
-        triples.append((match.group(1), match.group(3), match.group(4)))
+        subject = match.group(1)
+        verb = match.group(3)
+        obj = match.group(4)
+        triples.add((subject, verb, obj))
     return triples
 
 
@@ -33,7 +36,7 @@ def apply_rules(words):
     :return: 知识三元组列表
     """
     sentence = to_sentence(words)
-    # print('sentence:',sentence)
-    results = []
-    results.extend(rule_verb_object_relation(sentence))
+    print('sentence:',sentence)
+    results = set()
+    results.update(rule_verb_object_relation(sentence))
     return results

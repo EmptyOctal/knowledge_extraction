@@ -13,4 +13,4 @@ if __name__ == '__main__':
         print(triple)
 
     # 保存结果
-    save_to_file(knowledge)
+    save_to_file(list(knowledge))

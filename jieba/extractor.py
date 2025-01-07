@@ -8,7 +8,7 @@ def extract_knowledge(text):
     :param text: 输入的长文本
     :return: 知识三元组列表 [(主语, 谓语, 宾语)]
     """
-    all_knowledge = []
+    all_knowledge = set()
     sentences = split_sentences(text)
     for sentence in sentences:
         cleaned_text = clean_text(sentence)
@@ -16,5 +16,5 @@ def extract_knowledge(text):
         words = segment_and_tag(cleaned_text)
         # 3. 应用规则提取三元组
         knowledge = apply_rules(words)
-        all_knowledge.extend(knowledge)
+        all_knowledge.update(knowledge)
     return all_knowledge
