@@ -11,9 +11,10 @@ def extract_knowledge(text):
     all_knowledge = set()
     sentences = split_sentences(text)
     for sentence in sentences:
-        cleaned_text = clean_text(sentence)
+        # 1. 文本清理
+        # cleaned_text = clean_text(sentence)
         # 2. 分词与词性标注
-        words = segment_and_tag(cleaned_text)
+        words = segment_and_tag(sentence)
         # 3. 应用规则提取三元组
         knowledge = apply_rules(words)
         all_knowledge.update(knowledge)

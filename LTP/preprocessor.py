@@ -1,9 +1,9 @@
 import re
 
 def clean_text(text):
-    """清理文本，去除标点、特殊字符等"""
+    """清理文本，去除空格等"""
     text = text.replace(' ', '') # 去除空格
-    text = re.sub(r'[^\w\s]', '', text)  # 去除标点符号
+    # text = re.sub(r'[^\w\s]', '', text)  # 去除标点符号
     return text.strip()
 
 def split_sentences(text):
@@ -16,6 +16,5 @@ def split_sentences(text):
     sentences = re.split(r'([。！？；：……])', text)    
     # 将句末标点与前文结合，清除空字符串和多余的空格
     sentences = [sentence.strip() + end.strip() for sentence, end in zip(sentences[::2], sentences[1::2])]
-    
     # 返回非空句子
     return [sentence for sentence in sentences if sentence.strip()]
