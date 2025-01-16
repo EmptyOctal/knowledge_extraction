@@ -16,7 +16,7 @@ def rule_verb_object_relation(sentence):
     """规则1：提取一般动宾结构"""
     triples = set()
     # 匹配模式：名词 + 动词 + 名词，且宾语后面不能是动词或形容词
-    pattern = r'(\S+)/({}) (\S+)/v (\S+)/({}) (?!\S+/(v|a|d))'.format(
+    pattern = r'(\S+)/({}) (\S+)/v (\S+)/({}) (?!\S+/(v|a|d|u))'.format(
         '|'.join(NOUN_TAGS),  # 主语是名词类
         '|'.join(NOUN_TAGS)   # 宾语也是名词类
     )
@@ -32,7 +32,7 @@ def rule_verb_object_relation(sentence):
 def rule_is_relation(sentence):
     """规则2：提取"A 是 B"的描述性关系"""
     triples = set()
-    pattern = r'(\S+)/({}) 是/v (\S+)/({})'.format('|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS))
+    pattern = r'(\S+)/({}) 是/v (\S+)/({}) (?!\S+/(v|a|d|u))'.format('|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS))
     matches = re.finditer(pattern, sentence)
     for match in matches:
         subject = match.group(1)
@@ -193,10 +193,6 @@ def rule_cause_relation(sentence):
         triples.add((cause, "导致", effect))
     return triples
 
-
-
-
-
 def rule_modify_relation(sentence):
     """规则12：提取“修饰”关系"""
     triples = set()
@@ -279,14 +275,19 @@ def rule_like_relation(sentence):
     return triples
 
 def rule_is_possessive_relation(sentence):
-    """规则16：提取 A 是 B 的 C"""
+    """规则16：提取 A 是 B 的 C 结构"""
     triples = set()
-    pattern = r'(\S+)/({}) 是/v (\S+)/({}) 的/u (\S+)/({})'.format('|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS))
+    pattern = r'(\S+)/({}) 是/v (\S+)/({}) 的/u (\S+)/({})'.format(
+        '|'.join(NOUN_TAGS),  # A 和 B 都是名词
+        '|'.join(NOUN_TAGS),  # B 和 C 都是名词
+        '|'.join(NOUN_TAGS)   # C 是名词
+    )
     matches = re.finditer(pattern, sentence)
     for match in matches:
-        subject = match.group(1)
-        possessive = f"{match.group(3)}的{match.group(6)}"
-        triples.add((subject, "是", possessive))
+        possessor = match.group(3)  # B：拥有者
+        entity = match.group(5)    # C：拥有的对象
+        subject = match.group(1)   # A：描述的主体
+        triples.add((subject, "是", f'{possessor}的{entity}'))
     return triples
 
 def rule_because_relation(sentence):
@@ -397,7 +398,7 @@ def rule_similarity_relation(sentence):
 def apply_rules(words):
     """应用所有规则"""
     sentence = to_sentence(words)
-    # print('sentence:', sentence)
+    print('sentence:', sentence)
     results = set()
     results.update(rule_verb_object_relation(sentence))  # 规则1
     results.update(rule_is_relation(sentence))  # 规则2
