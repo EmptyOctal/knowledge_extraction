@@ -398,7 +398,7 @@ def rule_similarity_relation(sentence):
 def apply_rules(words):
     """应用所有规则"""
     sentence = to_sentence(words)
-    print('sentence:', sentence)
+    # print('sentence:', sentence)
     results = set()
     results.update(rule_verb_object_relation(sentence))  # 规则1
     results.update(rule_is_relation(sentence))  # 规则2

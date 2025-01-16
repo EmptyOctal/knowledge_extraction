@@ -17,7 +17,37 @@ LTP/
 ├── test_demo.py        # 对测试文本进行知识抽取的demo
 └── data.txt            # 测试文本(自行添加)
 ```
+## 使用方法
+目前只写了从csv读入的版本，具体使用方法如下：
 
+首先需要从LTP的仓库下载预训练分词模型：https://github.com/HIT-SCIR/ltp
+将model.py中的模型路径替换为本地的路径。
+下载时可优先选择small和Legacy，我自己使用的就是这两款，在词性标注上非常实用。
+
+```python
+ _model = LTP("D:/LTP/small") # 替换为自己下载的模型文件夹路径
+ ```
+如需测试笔者仓库里提供的demo_data.csv的抽取效果，可在LTP/直接下运行：
+```bash
+python main.py
+```
+或者可以在LTP/下创建自定义测试样例data.txt，然后运行test_demo.py，测试抽取效果。
+
+如需用本框架对自己的数据进行知识抽取，可运行：
+```bash
+python main.py --csv_file 你的csv文件路径 --text_column 你保存文本的列名
+```
+如需开启本地neo4j存储，请自行修改main.py的参数设置：
+```python
+parser.add_argument('--csv_file', type=str, default='D:/CodeField/knowledge_extraction/demo_data.csv', help='Path to the CSV file.')
+parser.add_argument('--text_column', type=str, default='正文', help='Name of the column containing text.')
+parser.add_argument('--need_neo4j', type=bool, default=False, help='Whether to save the results to Neo4j database.')
+parser.add_argument('--neo4j_uri', type=str, default='bolt://localhost:7687', help='URI for the Neo4j database.')
+parser.add_argument('--neo4j_user', type=str, default='neo4j', help='Username for the Neo4j database.')
+parser.add_argument('--neo4j_password', type=str, default='passw0rd', help='Password for the Neo4j database.')
+parser.add_argument('--neo4j_database', type=str, default='neo4j', help='Database name for the Neo4j database.')
+parser.add_argument('--output_file', type=str, default='knowledge.json', help='Output file to save the results.')
+```
 ## 规则说明
 **提取规则**
 以下是项目中实现的提取规则：
@@ -60,6 +90,12 @@ LTP/
 - [ ] 完善 additional_rules.py 文件，引入一些对特殊领域文本的special rules，支持更多样化的知识抽取需求以及挖掘更深层次的关系。
 
 - [ ] 优化规则匹配效率，处理更大规模的文本数据。
+
+## 项目结果示例
+<img src="https://picbed.octalzhihao.top/img/temp.gif">
+
+下图展示了生成的知识图谱的冰山一角：
+<img src="https://picbed.octalzhihao.top/img/temp2.gif">
 
 ## 贡献
 欢迎社区用户参与贡献！请提交 PR 或 issue 与我们交流。
