@@ -15,14 +15,19 @@ LOC_TAG = 'ns'  # 地点名词
 def rule_verb_object_relation(sentence):
     """规则1：提取一般动宾结构"""
     triples = set()
-    pattern = r'(\S+)/({}) (\S+)/v (\S+)/({})'.format('|'.join(NOUN_TAGS), '|'.join(NOUN_TAGS))
+    # 匹配模式：名词 + 动词 + 名词，且宾语后面不能是动词或形容词
+    pattern = r'(\S+)/({}) (\S+)/v (\S+)/({}) (?!\S+/(v|a|d))'.format(
+        '|'.join(NOUN_TAGS),  # 主语是名词类
+        '|'.join(NOUN_TAGS)   # 宾语也是名词类
+    )
     matches = re.finditer(pattern, sentence)
     for match in matches:
-        subject = match.group(1)
-        verb = match.group(3)
-        obj = match.group(4)
+        subject = match.group(1)  # 主语
+        verb = match.group(3)     # 动词
+        obj = match.group(4)      # 宾语
         triples.add((subject, verb, obj))
     return triples
+
 
 def rule_is_relation(sentence):
     """规则2：提取"A 是 B"的描述性关系"""
@@ -132,15 +137,64 @@ def rule_need_relation(sentence):
     return triples
 
 def rule_cause_relation(sentence):
-    """规则11：提取“因果”关系"""
+    """规则11：提取“导致”关系，包括：
+    1. 因果关系中的 “n + 导致 + n + (可选副词) + v” 的结构；
+    2. 因果关系中的 “n + 导致 + n + (可选副词) + v + n” 的结构；
+    3. 因果关系中的 “n + 导致 + 名词 + 形容词” 的结构。
+    """
     triples = set()
-    pattern = r'(\S+)/({}) (使得|导致)/v (\S+)/({})'.format('|'.join(['n', 'nz', 'nl', 'ns']), '|'.join(['n', 'nz', 'nl', 'ns']))
-    matches = re.finditer(pattern, sentence)
-    for match in matches:
-        cause = match.group(1)
-        effect = match.group(4)
+
+    # 匹配模式1：n + 导致 + n + (可选副词) + v
+    pattern1 = r'(\S+)/({}) (使得|导致|造成|令|让)/v (\S+)/({}) (?:((\S+)/d )?(\S+)/v)'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 前因是名词类
+        '|'.join(['n', 'nz', 'nl', 'ns'])   # 动宾结构的主语
+    )
+    matches1 = re.finditer(pattern1, sentence)
+    for match in matches1:
+        
+        cause = match.group(1)  # 提取前因
+        subject = match.group(4)  # 动宾结构的主语
+        verb_modifier = match.group(7) if match.group(7) else ""  # 提取副词（若存在）
+        verb = match.group(8)  # 动词
+        if verb_modifier:
+            verb_modifier = verb_modifier.strip()  # 去掉尾部空格
+        effect = f"{subject}{verb_modifier}{verb}"  # 拼接主语 + 副词 + 动词
+        triples.add((cause, "导致", effect))
+
+    # 匹配模式2：n + 导致 + n + (可选副词) + v + n
+    pattern2 = r'(\S+)/({}) (使得|导致|造成|令|让)/v (\S+)/({}) (?:((\S+)/d )?(\S+)/v (\S+)/({}))'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 前因是名词类
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 动宾结构的主语
+        '|'.join(['n', 'nz', 'nl', 'ns', 'i'])   # 可选的宾语
+    )
+    matches2 = re.finditer(pattern2, sentence)
+    for match in matches2:
+        cause = match.group(1)  # 提取前因
+        subject = match.group(4)  # 动宾结构的主语
+        verb_modifier = match.group(7) if match.group(7) else ""  # 提取副词（若存在）
+        verb = match.group(8)  # 动词
+        obj = match.group(9)  # 宾语
+        if verb_modifier:
+            verb_modifier = verb_modifier.strip()  # 去掉尾部空格
+        effect = f"{subject}{verb_modifier}{verb}{obj}"  # 拼接主语 + 副词 + 动词 + 宾语
+        triples.add((cause, "导致", effect))
+
+    # 匹配模式3：n + 导致 + 名词 + 形容词
+    pattern3 = r'(\S+)/({}) (使得|导致|造成|令|让)/v (\S+)/({}) (\S+)/a'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 前因是名词类
+        '|'.join(['n', 'nz', 'nl', 'ns'])   # 形容词前面的名词
+    )
+    matches3 = re.finditer(pattern3, sentence)
+    for match in matches3:
+        cause = match.group(1)  # 提取前因
+        subject = match.group(4)  # 提取“名词”
+        adj = match.group(6)  # 提取“形容词”
+        effect = f"{subject}{adj}"  # 拼接名词 + 形容词
         triples.add((cause, "导致", effect))
     return triples
+
+
+
 
 
 def rule_modify_relation(sentence):
@@ -178,12 +232,21 @@ def rule_person_location_label(sentence):
 def rule_food_relation(sentence):
     """规则14：提取 动词'吃'/'喝' 或形容词'美味的' 后面名词'A'，标记为 A 是 食物"""
     triples = set()
-    # 修改匹配模式，支持“吃/v”、“喝/v”、“美味/a 的/u” 后接 名词/n
-    pattern = r'(吃/v|喝/v|美味/a 的/u) .*? (\S+)/({})'.format('|'.join(NOUN_TAGS))
-    matches = re.finditer(pattern, sentence)
+    # 支持“吃/v”、“喝/v”、“美味/n 的/u” 后接 名词/n
+    pattern1 = r'吃/v.*?(\S+)/({})'.format('|'.join(NOUN_TAGS))
+    matches = re.finditer(pattern1, sentence)
     for match in matches:
-        action = match.group(1)  # 动作或形容词短语
-        food = match.group(2)  # 名词
+        food = match.group(1)
+        triples.add((food, "是", "食物"))
+    pattern2 = r'喝/v.*?(\S+)/({})'.format('|'.join(NOUN_TAGS))
+    matches = re.finditer(pattern2, sentence)
+    for match in matches:
+        food = match.group(1)
+        triples.add((food, "是", "食物"))
+    pattern3 = r'(美味|好吃|美味可口|可口)/n 的/u (\S+)/({})'.format('|'.join(NOUN_TAGS))
+    matches = re.finditer(pattern3, sentence)
+    for match in matches:
+        food = match.group(1)
         triples.add((food, "是", "食物"))
     return triples
 
@@ -226,12 +289,71 @@ def rule_is_possessive_relation(sentence):
         triples.add((subject, "是", possessive))
     return triples
 
+def rule_because_relation(sentence):
+    """规则17：提取“因为”关系，包括：
+    1. 因果关系中的 “n + 是因为 + n + (可选副词) + v” 的结构；
+    2. 因果关系中的 “n + 是因为 + n + (可选副词) + v + n” 的结构；
+    3. 因果关系中的 “n + 是因为 + n + 形容词” 的结构。
+    """
+    triples = set()
+
+    # 匹配模式1：n + 是因为 + n + (可选副词) + v
+    pattern1 = r'(\S+)/({}) (是因为|归因于|得益于|归功于|归咎于|是由于|由于|因)/v (\S+)/({}) (?:((\S+)/d )?(\S+)/v)'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 后果是名词类
+        '|'.join(['n', 'nz', 'nl', 'ns'])   # 因果中的主语
+    )
+    matches1 = re.finditer(pattern1, sentence)
+    for match in matches1:
+        effect = match.group(1)  # 提取后果
+        cause_subject = match.group(4)  # 因果中的主语
+        verb_modifier = match.group(7) if match.group(7) else ""  # 提取副词（若存在）
+        verb = match.group(8)  # 动词
+        if verb_modifier:
+            verb_modifier = verb_modifier.split('/')[0]  # 去掉标注符号
+        cause = f"{cause_subject}{verb_modifier}{verb}"  # 拼接主语 + 副词 + 动词
+        triples.add((effect, "由于", cause))
+
+    # 匹配模式2：n + 是因为 + n + (可选副词) + v + n
+    pattern2 = r'(\S+)/({}) (是因为|归因于|得益于|归功于|归咎于|是由于|由于|因)/v (\S+)/({}) (?:((\S+)/d )?(\S+)/v (\S+)/({}))'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 后果是名词类
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 因果中的主语
+        '|'.join(['n', 'nz', 'nl', 'ns', 'i'])   # 可选的宾语
+    )
+    matches2 = re.finditer(pattern2, sentence)
+    for match in matches2:
+        all_groups = match.groups()
+        for i in range(len(all_groups)):
+            print(f"match.group({i}): {match.group(i)}")
+        effect = match.group(1)  # 提取后果
+        cause_subject = match.group(4)  # 因果中的主语
+        verb_modifier = match.group(7) if match.group(7) else ""  # 提取副词（若存在）
+        verb = match.group(8)  # 动词
+        obj = match.group(9)  # 宾语
+        if verb_modifier:
+            verb_modifier = verb_modifier.split('/')[0]  # 去掉标注符号
+        cause = f"{cause_subject}{verb_modifier}{verb}{obj}"  # 拼接主语 + 副词 + 动词 + 宾语
+        triples.add((effect, "由于", cause))
+
+    # 匹配模式3：n + 是因为 + n + 形容词
+    pattern3 = r'(\S+)/({}) (是因为|归因于|得益于|归功于|归咎于|是由于|由于|因)/v (\S+)/({}) (\S+)/a'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns']),  # 后果是名词类
+        '|'.join(['n', 'nz', 'nl', 'ns'])   # 因果中的名词
+    )
+    matches3 = re.finditer(pattern3, sentence)
+    for match in matches3:
+        effect = match.group(1)  # 提取后果
+        cause_subject = match.group(4)  # 提取因果中的主语
+        adj = match.group(6)  # 提取形容词
+        cause = f"{cause_subject}{adj}"  # 拼接主语 + 形容词
+        triples.add((effect, "由于", cause))
+
+    return triples
 
 
 def apply_rules(words):
     """应用所有规则"""
     sentence = to_sentence(words)
-    # print('sentence:', sentence)
+    print('sentence:', sentence)
     results = set()
     results.update(rule_verb_object_relation(sentence))  # 规则1
     results.update(rule_is_relation(sentence))  # 规则2
@@ -249,4 +371,5 @@ def apply_rules(words):
     results.update(rule_food_relation(sentence))  # 规则14
     results.update(rule_like_relation(sentence))  # 规则15
     results.update(rule_is_possessive_relation(sentence))  # 规则16
+    results.update(rule_because_relation(sentence))  # 规则17
     return results
