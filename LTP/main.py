@@ -1,32 +1,43 @@
-import os
+import pandas as pd
 from extractor import extract_knowledge
-from storage import save_to_file
+from storage import save_to_neo4j, save_to_file
 
-def read_all_md_files(directory):
+def read_text_from_csv(file_path, text_column):
     """
-    从指定目录读取所有.md文件的内容。
+    从 CSV 文件的指定列逐行读取内容。
+    :param file_path: CSV 文件路径
+    :param text_column: 包含正文内容的列名
+    :return: 正文内容列表
     """
-    text = ""
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.md'):
-                file_path = os.path.join(root, file)
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    text += f.read() + '\n'  # 将文件内容累加
-    return text
+    df = pd.read_csv(file_path, encoding='gbk') # encoding为文件编码格式
+    return df[text_column].dropna().astype(str).tolist()
+
+def read_text_from_dir(dir_path):
+    """
+    从指定目录下的所有文件读取文本内容。
+    :param dir_path: 目录路径
+    :return: 正文内容列表
+    """
+    pass
+
 
 if __name__ == '__main__':
-    # 指定目录路径
-    directory = 'F:/浏览器下载/rmrb-master/rmrb-master/7z/1989年09月'
-
-    # 读取所有.md文件内容
-    text = read_all_md_files(directory)
-
-    # 知识抽取
-    knowledge = extract_knowledge(text)
-    # print("提取的知识：")
-    # for triple in knowledge:
-    #     print(triple)
-
-    # 保存结果
-    # save_to_file(list(knowledge))
+    csv_file = 'D:/CodeField/knowledge_extraction/demo_data.csv'
+    text_column = '正文'
+    texts = read_text_from_csv(csv_file, text_column)
+    result = []
+    tot = 0
+    for text in texts:
+        tot += 1
+        if tot >= 10:
+            break
+        knowledge = extract_knowledge(text)
+        result.extend(knowledge)
+        print(f"处理正文：{text}")
+        for triple in knowledge:
+            print(triple)
+    
+    # 保存结果到 Neo4j 数据库
+    save_to_neo4j(result, uri="bolt://localhost:7687", user="neo4j", password="passw0rd", database="neo4j")
+    # 保存结果到文件
+    save_to_file(result, 'knowledge.json')

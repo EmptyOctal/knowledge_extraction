@@ -349,11 +349,55 @@ def rule_because_relation(sentence):
 
     return triples
 
+def rule_institution_extraction(sentence):
+    """规则18：提取所有的 A/ni 为 A 是机构"""
+    triples = set()
+    # 匹配 A/ni（机构）
+    pattern_ni = r'(\S+)/ni'
+    matches_ni = re.finditer(pattern_ni, sentence)
+    for match in matches_ni:
+        entity = match.group(1)  # 提取机构名称
+        triples.add((entity, "是", "机构"))
+    return triples
+def rule_idiom_extraction(sentence):
+    """规则19：提取所有的 A/i 为 A 是成语"""
+    triples = set()
+    # 匹配 A/i（成语）
+    pattern_i = r'(\S+)/i'
+    matches_i = re.finditer(pattern_i, sentence)
+    for match in matches_i:
+        entity = match.group(1)  # 提取成语
+        if len(entity) > 3:
+            triples.add((entity, "是", "成语或俗语"))
+    return triples
+
+def rule_similarity_relation(sentence):
+    """规则20：提取相似关系，包括：
+    1. A 就像 B
+    2. A 好像 B
+    3. A 如 B
+    4. A 和 B 很像
+    5. 其他类似表达
+    提取为 (A, 相似于, B)
+    """
+    triples = set()
+    # 定义匹配模式，匹配常见的相似表达
+    pattern = r'(\S+)/({}) (就像|好像|如|和|如同)/p (\S+)/({}) (?:很像|一样|相似)?'.format(
+        '|'.join(['n', 'nz', 'nl', 'ns', 'i']),  # A 是名词类或成语
+        '|'.join(['n', 'nz', 'nl', 'ns', 'i'])   # B 是名词类或成语
+    )
+    matches = re.finditer(pattern, sentence)
+    for match in matches:
+        entity_a = match.group(1)  # 提取 A
+        entity_b = match.group(4)  # 提取 B
+        triples.add((entity_a, "相似于", entity_b))
+    return triples
+
 
 def apply_rules(words):
     """应用所有规则"""
     sentence = to_sentence(words)
-    print('sentence:', sentence)
+    # print('sentence:', sentence)
     results = set()
     results.update(rule_verb_object_relation(sentence))  # 规则1
     results.update(rule_is_relation(sentence))  # 规则2
@@ -372,4 +416,7 @@ def apply_rules(words):
     results.update(rule_like_relation(sentence))  # 规则15
     results.update(rule_is_possessive_relation(sentence))  # 规则16
     results.update(rule_because_relation(sentence))  # 规则17
+    results.update(rule_institution_extraction(sentence))  # 规则18
+    results.update(rule_idiom_extraction(sentence))  # 规则19
+    results.update(rule_similarity_relation(sentence))  # 规则20
     return results
