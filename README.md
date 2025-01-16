@@ -94,8 +94,8 @@ parser.add_argument('--output_file', type=str, default='knowledge.json', help='O
 ## 项目结果示例
 <img src="https://picbed.octalzhihao.top/img/temp.gif">
 
-下图展示了生成的知识图谱的冰山一角：
-<img src="https://picbed.octalzhihao.top/img/temp2.gif">
+下图展示了生成的知识图谱的一小部分：
+https://picbed.octalzhihao.top/img/temp2.gif
 
 ## 贡献
 欢迎社区用户参与贡献！请提交 PR 或 issue 与我们交流。
