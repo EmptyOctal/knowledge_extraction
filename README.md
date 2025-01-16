@@ -20,9 +20,12 @@ LTP/
 ## 使用方法
 目前只写了从csv读入的版本，具体使用方法如下：
 
-首先需要从LTP的仓库下载预训练分词模型：https://github.com/HIT-SCIR/ltp
+首先需要从LTP的仓库下载预训练分词模型：https://github.com/HIT-SCIR/ltp。
+
 将model.py中的模型路径替换为本地的路径。
+
 下载时可优先选择small和Legacy，我自己使用的就是这两款，在词性标注上非常实用。
+
 
 ```python
  _model = LTP("D:/LTP/small") # 替换为自己下载的模型文件夹路径
@@ -50,6 +53,7 @@ parser.add_argument('--output_file', type=str, default='knowledge.json', help='O
 ```
 ## 规则说明
 **提取规则**
+
 以下是项目中实现的提取规则：
 1. 提取广泛的动词和宾语之间的关系，例如 "A 动作 B"，其中A和B都是名词，且B后无动词/形容词/助词。
 2. 提取 "A 是 B" 形式的描述性关系，其中A和B都是名词，且B后无动词/形容词/助词。
@@ -76,13 +80,18 @@ parser.add_argument('--output_file', type=str, default='knowledge.json', help='O
 
 **规则实现**
 规则基于正则表达式来实现:
+
 虽然LTP进行词性标注得到的结果是两个列表，但为了方便进行匹配，我选择将两个列表合并为了一个字符串。
+
 例如，对“我喜欢吃KFC”分词结果为：
+
 > result.cws[0]: ['我', '喜欢', '吃', 'KFC']
 > result.pos[0]: ['r', 'v', 'v', 'n']
 
 被我处理为了：`我/r 喜欢/v 吃/v KFC/n`
+
 然后，再使用 Python 的 `re` 模块进行模式匹配和提取，匹配模式支持丰富的词性标注信息。
+
 规则代码文件位于 `rules/base_rules.py` 中。
 
 
@@ -95,10 +104,11 @@ parser.add_argument('--output_file', type=str, default='knowledge.json', help='O
 <img src="https://picbed.octalzhihao.top/img/temp.gif">
 
 下图展示了生成的知识图谱的一小部分：
-<img src="https://picbed.octalzhihao.top/img/tempp.gif">
+
+https://picbed.octalzhihao.top/img/tempp.gif
 
 ## 贡献
 欢迎社区用户参与贡献！请提交 PR 或 issue 与我们交流。
 
 ## 许可证 | License
-本项目 遵循 [MIT License](https://github.com/octal-zhihao/MagiLearn/blob/main/LICENSE) 开源协议。
+本项目 遵循 [MIT License](https://github.com/EmptyOctal/knowledge_extraction/blob/main/LICENSE) 开源协议。
